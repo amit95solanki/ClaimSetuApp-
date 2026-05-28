@@ -11,6 +11,10 @@ import LoginScreen from './src/Screens/LoginScreen';
 import StartYourClaim from './src/Screens/StartYourClaim';
 import MainTabNavigator from './src/Roots/MainRoots/MainTabNavigator';
 
+import FormWizardScreen from './src/Screens/FormWizard/FormWizardScreen';
+import PaymentScreen from './src/Screens/PaymentScreen';
+import ClaimReadyScreen from './src/Screens/ClaimReadyScreen';
+
 const Stack = createNativeStackNavigator();
 
 const AuthenticatedStack = () => {
@@ -18,6 +22,9 @@ const AuthenticatedStack = () => {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MainTabs" component={MainTabNavigator} />
       <Stack.Screen name="StartYourClaim" component={StartYourClaim} />
+      <Stack.Screen name="FormWizard" component={FormWizardScreen} />
+      <Stack.Screen name="PaymentScreen" component={PaymentScreen} />
+      <Stack.Screen name="ClaimReadyScreen" component={ClaimReadyScreen} />
     </Stack.Navigator>
   );
 };

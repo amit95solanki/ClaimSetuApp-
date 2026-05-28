@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import Svg, { Path, Circle, Rect, G } from 'react-native-svg';
 import { useTheme } from '../Style/ThemeContext';
+import { useFormWizard } from '../store/useFormWizard';
 
 const { width } = Dimensions.get('window');
 
@@ -259,6 +260,34 @@ const StartYourClaim = ({ navigation }: any) => {
           </View>
         </View>
       </ScrollView>
+
+      {/* Proceed Button */}
+      <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
+        <TouchableOpacity 
+          style={{
+            backgroundColor: theme.colors.primary,
+            paddingVertical: 16,
+            borderRadius: 14,
+            alignItems: 'center',
+            shadowColor: theme.colors.primary,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2,
+            shadowRadius: 8,
+            elevation: 4
+          }}
+          activeOpacity={0.8}
+          onPress={() => {
+            const { setBankAndType } = useFormWizard.getState();
+            // TODO: In a real app we'd map 'sbi', 'hdfc' to actual DB UUIDs
+            setBankAndType(selectedBank, selectedType);
+            navigation.navigate('FormWizard');
+          }}
+        >
+          <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>
+            Continue to Forms
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Security message footer */}
       <View style={styles.footer}>
