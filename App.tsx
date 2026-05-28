@@ -1,45 +1,58 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, { useState } from 'react';
+import 'react-native-gesture-handler';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { ThemeProvider, useTheme } from './src/Style/ThemeContext';
+import { AuthProvider, useAuth } from './src/Style/AuthContext';
+import SplashScreen from './src/Screens/SplashScreen';
+import LoginScreen from './src/Screens/LoginScreen';
+import StartYourClaim from './src/Screens/StartYourClaim';
+import MainTabNavigator from './src/Roots/MainRoots/MainTabNavigator';
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+const Stack = createNativeStackNavigator();
+
+const AuthenticatedStack = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="MainTabs" component={MainTabNavigator} />
+      <Stack.Screen name="StartYourClaim" component={StartYourClaim} />
+    </Stack.Navigator>
+  );
+};
 
 function App() {
-  const isDarkMode = useColorScheme() === 'dark';
-
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <SafeAreaWrapper />
+          </AuthProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
+const SafeAreaWrapper = () => {
+  const { theme } = useTheme();
+  const { isAuthenticated } = useAuth();
+  const [isSplashFinished, setIsSplashFinished] = useState(false);
+
+  if (!isSplashFinished) {
+    return <SplashScreen onFinish={() => setIsSplashFinished(true)} />;
+  }
 
   return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
-      />
-    </View>
+    <NavigationContainer>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+        {isAuthenticated ? <AuthenticatedStack /> : <LoginScreen />}
+      </SafeAreaView>
+    </NavigationContainer>
   );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
+};
 
 export default App;
+
