@@ -1,4 +1,4 @@
-// Step 2: Heirs
+// Step 2: Legal Heirs
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity, Modal } from 'react-native';
 import { useTheme } from '../../../Style/ThemeContext';
@@ -10,6 +10,8 @@ interface Props {
   onBack: () => void;
 }
 
+const EMPTY_HEIR: Partial<LegalHeir> = { sharePercentage: '100' };
+
 const Step2Heirs = ({ onNext, onBack }: Props) => {
   const { theme } = useTheme();
   const legalHeirs = useFormWizard((state) => state.legalHeirs);
@@ -17,7 +19,7 @@ const Step2Heirs = ({ onNext, onBack }: Props) => {
   const removeHeir = useFormWizard((state) => state.removeHeir);
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [newHeir, setNewHeir] = useState<Partial<LegalHeir>>({ sharePercentage: '100' });
+  const [newHeir, setNewHeir] = useState<Partial<LegalHeir>>(EMPTY_HEIR);
 
   const handleAdd = () => {
     if (newHeir.fullName && newHeir.relationship && newHeir.sharePercentage) {
@@ -27,13 +29,41 @@ const Step2Heirs = ({ onNext, onBack }: Props) => {
         relationship: newHeir.relationship,
         sharePercentage: newHeir.sharePercentage,
         mobile: newHeir.mobile,
+        aadhaarNumber: newHeir.aadhaarNumber,
+        panNumber: newHeir.panNumber,
+        email: newHeir.email,
+        address: newHeir.address,
+        city: newHeir.city,
+        state: newHeir.state,
+        pincode: newHeir.pincode,
+        bankAccountNumber: newHeir.bankAccountNumber,
+        bankIfsc: newHeir.bankIfsc,
+        bankName: newHeir.bankName,
       } as LegalHeir);
-      setNewHeir({ sharePercentage: '100' });
+      setNewHeir(EMPTY_HEIR);
       setModalVisible(false);
     }
   };
 
   const isValid = legalHeirs.length > 0;
+
+  const renderModalInput = (
+    label: string,
+    field: keyof LegalHeir,
+    placeholder: string,
+    options?: { keyboardType?: any; autoCapitalize?: any; maxLength?: number }
+  ) => (
+    <TextInput
+      style={[styles.input, { borderColor: theme.colors.border, color: theme.colors.text, backgroundColor: theme.colors.background }]}
+      placeholder={`${label} — ${placeholder}`}
+      placeholderTextColor={theme.colors.muted}
+      keyboardType={options?.keyboardType || 'default'}
+      autoCapitalize={options?.autoCapitalize || 'words'}
+      maxLength={options?.maxLength}
+      value={(newHeir as any)[field] || ''}
+      onChangeText={(text) => setNewHeir({ ...newHeir, [field]: text })}
+    />
+  );
 
   return (
     <View style={styles.container}>
@@ -42,10 +72,18 @@ const Step2Heirs = ({ onNext, onBack }: Props) => {
         <Text style={[styles.subtitle, { color: theme.colors.muted }]}>Add all legal heirs who are claiming the amount.</Text>
 
         {legalHeirs.map((heir) => (
-          <View key={heir.id} style={[styles.heirCard, { borderColor: theme.colors.border }]}>
-            <View>
+          <View key={heir.id} style={[styles.heirCard, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}>
+            <View style={{ flex: 1 }}>
               <Text style={[styles.heirName, { color: theme.colors.text }]}>{heir.fullName}</Text>
-              <Text style={[styles.heirRel, { color: theme.colors.muted }]}>{heir.relationship} • {heir.sharePercentage}% Share</Text>
+              <Text style={[styles.heirRel, { color: theme.colors.muted }]}>
+                {heir.relationship} • {heir.sharePercentage}% Share
+              </Text>
+              {heir.aadhaarNumber ? (
+                <Text style={[styles.heirDetail, { color: theme.colors.muted }]}>Aadhaar: ****{heir.aadhaarNumber.slice(-4)}</Text>
+              ) : null}
+              {heir.bankAccountNumber ? (
+                <Text style={[styles.heirDetail, { color: theme.colors.muted }]}>Bank: ****{heir.bankAccountNumber.slice(-4)} ({heir.bankName})</Text>
+              ) : null}
             </View>
             <TouchableOpacity onPress={() => removeHeir(heir.id)} style={styles.deleteBtn}>
               <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -55,7 +93,7 @@ const Step2Heirs = ({ onNext, onBack }: Props) => {
           </View>
         ))}
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.addBtn, { borderColor: theme.colors.primary }]}
           onPress={() => setModalVisible(true)}
           activeOpacity={0.7}
@@ -68,45 +106,40 @@ const Step2Heirs = ({ onNext, onBack }: Props) => {
       <Modal visible={modalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
-            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Add Legal Heir</Text>
-            
-            <TextInput
-              style={[styles.input, { borderColor: theme.colors.border, color: theme.colors.text }]}
-              placeholder="Full Name *"
-              placeholderTextColor={theme.colors.muted}
-              value={newHeir.fullName || ''}
-              onChangeText={(text) => setNewHeir({...newHeir, fullName: text})}
-            />
-            <TextInput
-              style={[styles.input, { borderColor: theme.colors.border, color: theme.colors.text }]}
-              placeholder="Relationship (e.g. Son, Daughter) *"
-              placeholderTextColor={theme.colors.muted}
-              value={newHeir.relationship || ''}
-              onChangeText={(text) => setNewHeir({...newHeir, relationship: text})}
-            />
-            <TextInput
-              style={[styles.input, { borderColor: theme.colors.border, color: theme.colors.text }]}
-              placeholder="Mobile Number"
-              placeholderTextColor={theme.colors.muted}
-              keyboardType="number-pad"
-              value={newHeir.mobile || ''}
-              onChangeText={(text) => setNewHeir({...newHeir, mobile: text})}
-            />
-            <TextInput
-              style={[styles.input, { borderColor: theme.colors.border, color: theme.colors.text }]}
-              placeholder="Share Percentage (e.g. 100) *"
-              placeholderTextColor={theme.colors.muted}
-              keyboardType="number-pad"
-              value={newHeir.sharePercentage || ''}
-              onChangeText={(text) => setNewHeir({...newHeir, sharePercentage: text})}
-            />
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 500 }}>
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Add Legal Heir</Text>
+
+              <Text style={[styles.sectionLabel, { color: theme.colors.primary }]}>PERSONAL DETAILS</Text>
+              {renderModalInput('Full Name', 'fullName', 'Mandatory *')}
+              {renderModalInput('Relationship', 'relationship', 'e.g. Son, Daughter *')}
+              {renderModalInput('Mobile', 'mobile', '10-digit number', { keyboardType: 'phone-pad', maxLength: 10 })}
+              {renderModalInput('Email', 'email', 'email@example.com', { autoCapitalize: 'none' })}
+
+              <Text style={[styles.sectionLabel, { color: theme.colors.primary }]}>ID PROOF</Text>
+              {renderModalInput('Aadhaar', 'aadhaarNumber', '12-digit Aadhaar', { keyboardType: 'number-pad', maxLength: 12 })}
+              {renderModalInput('PAN', 'panNumber', '10-char PAN', { autoCapitalize: 'characters', maxLength: 10 })}
+
+              <Text style={[styles.sectionLabel, { color: theme.colors.primary }]}>BANK DETAILS</Text>
+              {renderModalInput('Account No.', 'bankAccountNumber', 'Bank account number', { keyboardType: 'number-pad' })}
+              {renderModalInput('IFSC Code', 'bankIfsc', 'e.g. SBIN0001234', { autoCapitalize: 'characters' })}
+              {renderModalInput('Bank Name', 'bankName', 'e.g. State Bank of India')}
+
+              <Text style={[styles.sectionLabel, { color: theme.colors.primary }]}>ADDRESS</Text>
+              {renderModalInput('Address', 'address', 'House No, Street')}
+              {renderModalInput('City', 'city', 'e.g. Lucknow')}
+              {renderModalInput('State', 'state', 'e.g. Uttar Pradesh')}
+              {renderModalInput('Pincode', 'pincode', '6-digit', { keyboardType: 'number-pad', maxLength: 6 })}
+
+              <Text style={[styles.sectionLabel, { color: theme.colors.primary }]}>SHARE</Text>
+              {renderModalInput('Share %', 'sharePercentage', 'e.g. 100 *', { keyboardType: 'number-pad' })}
+            </ScrollView>
 
             <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.modalCancel} onPress={() => setModalVisible(false)}>
+              <TouchableOpacity style={styles.modalCancel} onPress={() => { setNewHeir(EMPTY_HEIR); setModalVisible(false); }}>
                 <Text style={{ color: theme.colors.muted, fontWeight: '600' }}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.modalAdd, { backgroundColor: theme.colors.primary }]} 
+              <TouchableOpacity
+                style={[styles.modalAdd, { backgroundColor: theme.colors.primary }]}
                 onPress={handleAdd}
               >
                 <Text style={{ color: '#FFF', fontWeight: '700' }}>Add Heir</Text>
@@ -117,15 +150,9 @@ const Step2Heirs = ({ onNext, onBack }: Props) => {
       </Modal>
 
       <View style={styles.footer}>
-        {/* <TouchableOpacity 
-          style={[styles.navButton, { backgroundColor: theme.colors.border }]}
-          onPress={onBack}
-        >
-          <Text style={[styles.navButtonText, { color: theme.colors.text }]}>Back</Text>
-        </TouchableOpacity> */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
-            styles.navButton, 
+            styles.navButton,
             { backgroundColor: isValid ? theme.colors.primary : theme.colors.border, flex: 1 }
           ]}
           disabled={!isValid}
@@ -145,6 +172,14 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 20, paddingBottom: 40 },
   title: { fontSize: 24, fontWeight: '700', marginBottom: 6 },
   subtitle: { fontSize: 14, marginBottom: 24 },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginTop: 12,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
   heirCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -156,6 +191,7 @@ const styles = StyleSheet.create({
   },
   heirName: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
   heirRel: { fontSize: 12 },
+  heirDetail: { fontSize: 11, marginTop: 4 },
   deleteBtn: { padding: 8 },
   addBtn: {
     padding: 16,
@@ -190,14 +226,14 @@ const styles = StyleSheet.create({
     padding: 24,
     borderRadius: 16,
   },
-  modalTitle: { fontSize: 20, fontWeight: '700', marginBottom: 20 },
+  modalTitle: { fontSize: 20, fontWeight: '700', marginBottom: 8 },
   input: {
     borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    marginBottom: 12,
+    paddingVertical: 12,
+    fontSize: 15,
+    marginBottom: 10,
   },
   modalActions: {
     flexDirection: 'row',

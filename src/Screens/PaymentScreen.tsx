@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { useTheme } from '../Style/ThemeContext';
 import { useFormWizard } from '../store/useFormWizard';
+import axiosInstance from '../lib/axios';
 import Svg, { Path } from 'react-native-svg';
 
 const PLANS = [
@@ -20,10 +21,9 @@ const PaymentScreen = ({ navigation }: any) => {
   const handlePayment = async () => {
     setIsSubmitting(true);
     try {
-      // 1. Submit claim to our backend
       const payload = {
-        userId: '11111111-1111-1111-1111-111111111111', // MOCK User ID until Auth is fully wired
-        bankId: state.bankId || '22222222-2222-2222-2222-222222222222', // MOCK Bank ID
+        userId: '11111111-1111-1111-1111-111111111111', // MOCK until Auth fully wired
+        bankId: state.bankId || '22222222-2222-2222-2222-222222222222',
         claimType: state.claimType,
         planType: selectedPlan,
         deceasedDetails: state.deceasedDetails,
@@ -32,19 +32,13 @@ const PaymentScreen = ({ navigation }: any) => {
         documents: state.documents,
       };
 
-      const response = await fetch('http://localhost:4000/api/claims/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const result = await response.json();
+      const response = await axiosInstance.post('/claims/submit', payload);
       
-      if (result.success) {
+      if (response.data.success) {
         state.resetWizard();
         navigation.navigate('ClaimReadyScreen');
       } else {
-        Alert.alert('Error', 'Failed to submit claim: ' + result.error);
+        Alert.alert('Error', 'Failed to submit claim: ' + response.data.error);
       }
     } catch (error) {
       console.error(error);

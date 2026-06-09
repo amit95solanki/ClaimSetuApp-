@@ -3,27 +3,64 @@ import { create } from 'zustand';
 export interface DeceasedDetails {
   fullName: string;
   fullNameHindi?: string;
+  dateOfBirth?: string;
   dateOfDeath: string;
-  accountNumber: string;
+  gender?: string;
   aadhaarNumber?: string;
   panNumber?: string;
+  accountNumber?: string;
+  accountType?: string;
+  fdReceiptNumber?: string;
   address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  religion?: string;
 }
 
 export interface LegalHeir {
   id: string;
+  isPrimary?: boolean;
+  isNominee?: boolean;
   fullName: string;
+  fullNameHindi?: string;
   relationship: string;
-  mobile?: string;
+  dateOfBirth?: string;
   aadhaarNumber?: string;
+  panNumber?: string;
+  mobile?: string;
+  email?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  bankAccountNumber?: string;
+  bankIfsc?: string;
+  bankName?: string;
   sharePercentage: string;
+  isMinor?: boolean;
+  guardianName?: string;
 }
 
 export interface Witness {
   id: string;
+  witnessNumber?: number;
   fullName: string;
+  aadhaarNumber?: string;
   mobile?: string;
   address?: string;
+  knownSinceYears?: number;
+}
+
+export interface ClaimDocument {
+  id: string;
+  docType: string;    // e.g. 'death_certificate', 'aadhaar'
+  docLabel: string;   // e.g. 'Death Certificate'
+  fileUrl?: string;
+  fileName?: string;
+  fileSizeKb?: number;
+  documentStatus?: string;
+  isRequired?: boolean;
 }
 
 interface FormWizardState {
@@ -32,7 +69,7 @@ interface FormWizardState {
   deceasedDetails: Partial<DeceasedDetails>;
   legalHeirs: LegalHeir[];
   witnesses: Witness[];
-  documents: any[];
+  documents: ClaimDocument[];
   
   // Actions
   setBankAndType: (bankId: string, claimType: string) => void;
@@ -41,7 +78,7 @@ interface FormWizardState {
   removeHeir: (id: string) => void;
   addWitness: (witness: Witness) => void;
   removeWitness: (id: string) => void;
-  addDocument: (doc: any) => void;
+  addDocument: (doc: ClaimDocument) => void;
   resetWizard: () => void;
 }
 
