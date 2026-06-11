@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -13,12 +13,31 @@ import Svg, { Path, Circle, Rect } from 'react-native-svg';
 import LinearGradient from 'react-native-linear-gradient';
 import { useTheme } from '../Style/ThemeContext';
 import { useAuth } from '../Style/AuthContext';
+import { getUserClaims } from '../api/services/claimService';
+import { Claim } from '../api/services/types';
 
 const { width } = Dimensions.get('window');
 
 const HomeScreen = ({ navigation }: any) => {
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
+  
+  const [claims, setClaims] = useState<Claim[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchClaims = async () => {
+      try {
+        const data = await getUserClaims(); // Can pass user.id if backend supports
+        setClaims(data.slice(0, 3)); // Only show top 3 on home
+      } catch (error) {
+        console.error('Error fetching home claims', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchClaims();
+  }, []);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -162,48 +181,41 @@ const HomeScreen = ({ navigation }: any) => {
         </View>
 
         {/* Claim Cards List */}
-        {/* Card 1: SBI */}
-        <View style={[styles.claimCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-          <View style={styles.cardLeft}>
-            <View style={[styles.bankLogoBg, { backgroundColor: '#E1EBFD' }]}>
-              {/* SBI Logo representation */}
-              <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <Circle cx="12" cy="12" r="9" fill="#1A4FB0" />
-                <Rect x="10" y="8" width="4" height="8" fill="#FFFFFF" />
-                <Circle cx="12" cy="12" r="3" fill="#1A4FB0" />
-              </Svg>
+        {loading ? (
+          <Text style={{ textAlign: 'center', marginTop: 20, color: theme.colors.muted }}>Loading claims...</Text>
+        ) : claims.length === 0 ? (
+          <Text style={{ textAlign: 'center', marginTop: 20, color: theme.colors.muted }}>No claims found. Start a new one!</Text>
+        ) : (
+          claims.map((claim) => (
+            <View key={claim.id} style={[styles.claimCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+              <View style={styles.cardLeft}>
+                <View style={[styles.bankLogoBg, { backgroundColor: claim.bank?.colorHex || '#E1EBFD' }]}>
+                  <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <Circle cx="12" cy="12" r="9" fill="#1A4FB0" />
+                    <Rect x="10" y="8" width="4" height="8" fill="#FFFFFF" />
+                  </Svg>
+                </View>
+                <View>
+                  <Text style={[styles.claimName, { color: theme.colors.text }]}>
+                    {claim.bank?.shortCode || 'Bank'} {claim.claimType} Claim
+                  </Text>
+                  <Text style={[styles.claimStateText, { color: theme.colors.muted }]}>
+                    {claim.status}  •  {new Date(claim.updatedAt).toLocaleDateString()}
+                  </Text>
+                </View>
+              </View>
+              {claim.status.toLowerCase() === 'completed' ? (
+                <View style={[styles.completedBadge, { backgroundColor: '#E8F5E9', borderColor: '#C8E6C9' }]}>
+                  <Text style={styles.completedText}>Completed</Text>
+                </View>
+              ) : (
+                <TouchableOpacity style={[styles.actionBtn, { borderColor: '#FEE5D9' }]} activeOpacity={0.7}>
+                  <Text style={[styles.actionBtnText, { color: theme.colors.primary }]}>Continue</Text>
+                </TouchableOpacity>
+              )}
             </View>
-            <View>
-              <Text style={[styles.claimName, { color: theme.colors.text }]}>SBI Death Claim</Text>
-              <Text style={[styles.claimStateText, { color: theme.colors.muted }]}>
-                Draft  •  Updated 2 days ago
-              </Text>
-            </View>
-          </View>
-          <TouchableOpacity style={[styles.actionBtn, { borderColor: '#FEE5D9' }]} activeOpacity={0.7}>
-            <Text style={[styles.actionBtnText, { color: theme.colors.primary }]}>Continue</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Card 2: HDFC */}
-        <View style={[styles.claimCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-          <View style={styles.cardLeft}>
-            <View style={[styles.bankLogoBg, { backgroundColor: '#FEEAEA' }]}>
-              {/* HDFC Logo representation */}
-              <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <Rect x="4" y="4" width="16" height="16" rx="2" fill="#E53935" />
-                <Rect x="7" y="7" width="10" height="10" fill="#FFFFFF" />
-                <Path d="M12 7V17M7 12H17" stroke="#E53935" strokeWidth="2.5" />
-              </Svg>
-            </View>
-            <View>
-              <Text style={[styles.claimName, { color: theme.colors.text }]}>HDFC FD Claim</Text>
-            </View>
-          </View>
-          <View style={[styles.completedBadge, { backgroundColor: '#E8F5E9', borderColor: '#C8E6C9' }]}>
-            <Text style={styles.completedText}>Completed</Text>
-          </View>
-        </View>
+          ))
+        )}
       </ScrollView>
     </View>
   );

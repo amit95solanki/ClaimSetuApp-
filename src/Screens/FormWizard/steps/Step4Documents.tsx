@@ -1,9 +1,10 @@
 // Step 4: Document Upload (Checklist)
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useTheme } from '../../../Style/ThemeContext';
 import { useFormWizard, ClaimDocument } from '../../../store/useFormWizard';
 import Svg, { Path } from 'react-native-svg';
+import { pick, types, isErrorWithCode, errorCodes } from '@react-native-documents/picker';
 
 interface Props {
   onNext: () => void;
@@ -27,19 +28,44 @@ const Step4Documents = ({ onNext, onBack }: Props) => {
     return documents.some((d) => d.docType === docType);
   };
 
-  const handleUpload = (docType: string, docLabel: string) => {
-    if (isDocUploaded(docType)) return;
+  const pickDocument = async (docType: string, docLabel: string) => {
+    try {
+      const res = await pick({
+        type: [types.pdf, types.images],
+        allowMultiSelection: false,
+      });
+      const file = res[0];
+      
+      addDocument({
+        id: Date.now().toString(),
+        docType,
+        docLabel,
+        fileName: file.name || `${docType}_scan.pdf`,
+        fileUrl: file.uri,
+        fileSizeKb: file.size ? Math.round(file.size / 1024) : 120,
+        documentStatus: 'pending',
+        isRequired: true,
+      });
+    } catch (err) {
+      if (!(isErrorWithCode(err) && err.code === errorCodes.OPERATION_CANCELED)) {
+        console.error('Error picking document:', err);
+      }
+    }
+  };
 
-    // Mock upload — in production, use react-native-document-picker or camera
-    addDocument({
-      id: Date.now().toString(),
-      docType,
-      docLabel,
-      fileName: `${docType}_scan.pdf`,
-      fileSizeKb: 120,
-      documentStatus: 'uploaded',
-      isRequired: true,
-    });
+  const handleUpload = (docType: string, docLabel: string) => {
+    if (isDocUploaded(docType)) {
+      Alert.alert(
+        'Replace File',
+        `Do you want to replace the uploaded ${docLabel}?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Replace', style: 'destructive', onPress: () => pickDocument(docType, docLabel) }
+        ]
+      );
+    } else {
+      pickDocument(docType, docLabel);
+    }
   };
 
   const uploadedCount = REQUIRED_DOCUMENTS.filter((d) => isDocUploaded(d.docType)).length;
@@ -100,7 +126,14 @@ const Step4Documents = ({ onNext, onBack }: Props) => {
                 </View>
               </View>
 
-              {!uploaded && (
+              {uploaded ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ color: theme.colors.primary, fontSize: 12, fontWeight: '600', marginRight: 4 }}>Replace</Text>
+                  <Svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <Path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16" stroke={theme.colors.primary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </Svg>
+                </View>
+              ) : (
                 <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                   <Path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke={theme.colors.primary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </Svg>

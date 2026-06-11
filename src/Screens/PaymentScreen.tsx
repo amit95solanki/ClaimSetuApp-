@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { useTheme } from '../Style/ThemeContext';
 import { useFormWizard } from '../store/useFormWizard';
-import axiosInstance from '../lib/axios';
+import { submitClaim } from '../api/services/claimService';
+import { uploadDocument } from '../api/services/uploadService';
 import Svg, { Path } from 'react-native-svg';
 
 const PLANS = [
@@ -21,26 +22,42 @@ const PaymentScreen = ({ navigation }: any) => {
   const handlePayment = async () => {
     setIsSubmitting(true);
     try {
+      // 1. Upload all local documents
+      const uploadedDocs = await Promise.all(
+        state.documents.map(async (doc) => {
+          if (doc.fileUrl && !doc.fileUrl.startsWith('http')) {
+            // Upload local file to Supabase
+            const remoteUrl = await uploadDocument(doc.fileUrl, 'application/pdf', doc.fileName || `${doc.docType}.pdf`);
+            return { ...doc, fileUrl: remoteUrl, documentStatus: 'uploaded' };
+          }
+          return doc;
+        })
+      );
+
+      // 2. Construct Payload
       const payload = {
         userId: '11111111-1111-1111-1111-111111111111', // MOCK until Auth fully wired
         bankId: state.bankId || '22222222-2222-2222-2222-222222222222',
         claimType: state.claimType,
         planType: selectedPlan,
+        metadata: state.customFieldsData,
         deceasedDetails: state.deceasedDetails,
         legalHeirs: state.legalHeirs,
         witnesses: state.witnesses,
-        documents: state.documents,
+        documents: uploadedDocs,
       };
 
-      const response = await axiosInstance.post('/claims/submit', payload);
+      // 3. Submit Claim to Backend
+      const response = await submitClaim(payload);
       
-      if (response.data.success) {
+      if (response && response.success !== false) {
+        // Assume success if no explicit false (generic CRUD behavior varies)
         state.resetWizard();
         navigation.navigate('ClaimReadyScreen');
       } else {
-        Alert.alert('Error', 'Failed to submit claim: ' + response.data.error);
+        Alert.alert('Error', 'Failed to submit claim: ' + (response.error || 'Unknown error'));
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       Alert.alert('Error', 'Error connecting to server. Please ensure backend is running.');
     } finally {

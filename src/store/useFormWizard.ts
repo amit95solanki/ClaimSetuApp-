@@ -70,9 +70,12 @@ interface FormWizardState {
   legalHeirs: LegalHeir[];
   witnesses: Witness[];
   documents: ClaimDocument[];
+  customFieldsSchema: any[];
+  customFieldsData: Record<string, any>;
   
   // Actions
-  setBankAndType: (bankId: string, claimType: string) => void;
+  setBankAndType: (bankId: string, claimType: string, customFieldsSchema?: any[]) => void;
+  updateCustomField: (key: string, value: any) => void;
   updateDeceasedDetails: (data: Partial<DeceasedDetails>) => void;
   addHeir: (heir: LegalHeir) => void;
   removeHeir: (id: string) => void;
@@ -89,8 +92,14 @@ export const useFormWizard = create<FormWizardState>((set) => ({
   legalHeirs: [],
   witnesses: [],
   documents: [],
+  customFieldsSchema: [],
+  customFieldsData: {},
 
-  setBankAndType: (bankId, claimType) => set({ bankId, claimType }),
+  setBankAndType: (bankId, claimType, customFieldsSchema = []) => 
+    set({ bankId, claimType, customFieldsSchema, customFieldsData: {} }),
+  
+  updateCustomField: (key, value) =>
+    set((state) => ({ customFieldsData: { ...state.customFieldsData, [key]: value } })),
   
   updateDeceasedDetails: (data) => 
     set((state) => ({ deceasedDetails: { ...state.deceasedDetails, ...data } })),
@@ -108,8 +117,14 @@ export const useFormWizard = create<FormWizardState>((set) => ({
     set((state) => ({ witnesses: state.witnesses.filter(w => w.id !== id) })),
     
   addDocument: (doc) => 
-    set((state) => ({ documents: [...state.documents, doc] })),
+    set((state) => {
+      const exists = state.documents.some((d) => d.docType === doc.docType);
+      if (exists) {
+        return { documents: state.documents.map((d) => (d.docType === doc.docType ? doc : d)) };
+      }
+      return { documents: [...state.documents, doc] };
+    }),
     
   resetWizard: () => 
-    set({ bankId: '', claimType: '', deceasedDetails: {}, legalHeirs: [], witnesses: [], documents: [] })
+    set({ bankId: '', claimType: '', deceasedDetails: {}, legalHeirs: [], witnesses: [], documents: [], customFieldsSchema: [], customFieldsData: {} })
 }));

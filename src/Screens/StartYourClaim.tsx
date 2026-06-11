@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,13 @@ import {
   SafeAreaView,
   StatusBar,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import Svg, { Path, Circle, Rect, G } from 'react-native-svg';
 import { useTheme } from '../Style/ThemeContext';
 import { useFormWizard } from '../store/useFormWizard';
+import { getBanks, getBankForms } from '../api/services/bankService';
+import { Bank, BankForm } from '../api/services/types';
 
 const { width } = Dimensions.get('window');
 
@@ -19,8 +22,48 @@ const StartYourClaim = ({ navigation }: any) => {
   const { theme } = useTheme();
 
   // State selectors
-  const [selectedBank, setSelectedBank] = useState<string>('sbi');
-  const [selectedType, setSelectedType] = useState<string>('savings');
+  const [selectedBank, setSelectedBank] = useState<string>('');
+  const [selectedFormId, setSelectedFormId] = useState<string>('');
+  
+  const [banks, setBanks] = useState<Bank[]>([]);
+  const [loadingBanks, setLoadingBanks] = useState(true);
+
+  const [forms, setForms] = useState<BankForm[]>([]);
+  const [loadingForms, setLoadingForms] = useState(false);
+
+  useEffect(() => {
+    const loadBanks = async () => {
+      try {
+        const data = await getBanks();
+        setBanks(data);
+        if (data.length > 0) setSelectedBank(data[0].id);
+      } catch (error) {
+        console.error('Failed to load banks', error);
+      } finally {
+        setLoadingBanks(false);
+      }
+    };
+    loadBanks();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedBank) return;
+    
+    const loadForms = async () => {
+      setLoadingForms(true);
+      try {
+        const data = await getBankForms(selectedBank);
+        setForms(data);
+        if (data.length > 0) setSelectedFormId(data[0].id);
+        else setSelectedFormId('');
+      } catch (error) {
+        console.error('Failed to load forms', error);
+      } finally {
+        setLoadingForms(false);
+      }
+    };
+    loadForms();
+  }, [selectedBank]);
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
@@ -48,135 +91,44 @@ const StartYourClaim = ({ navigation }: any) => {
         <View style={styles.sectionBlock}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>SELECT BANK</Text>
           <View style={styles.bankList}>
-            {/* Bank 1: SBI */}
-            <TouchableOpacity
-              style={[
-                styles.bankCard,
-                {
-                  backgroundColor: theme.colors.card,
-                  borderColor: selectedBank === 'sbi' ? theme.colors.primary : theme.colors.border,
-                },
-              ]}
-              activeOpacity={0.8}
-              onPress={() => setSelectedBank('sbi')}
-            >
-              <View style={styles.cardLeft}>
-                <View style={[styles.logoBg, { backgroundColor: '#E1EBFD' }]}>
-                  <Svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-                    <Circle cx="12" cy="12" r="9" fill="#1A4FB0" />
-                    <Rect x="10" y="8" width="4" height="8" fill="#FFFFFF" />
-                    <Circle cx="12" cy="12" r="3" fill="#1A4FB0" />
+            {loadingBanks ? (
+              <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginTop: 20 }} />
+            ) : banks.length === 0 ? (
+              <Text style={{ textAlign: 'center', marginTop: 20, color: theme.colors.muted }}>No banks available.</Text>
+            ) : (
+              banks.map((bank) => (
+                <TouchableOpacity
+                  key={bank.id}
+                  style={[
+                    styles.bankCard,
+                    {
+                      backgroundColor: theme.colors.card,
+                      borderColor: selectedBank === bank.id ? theme.colors.primary : theme.colors.border,
+                    },
+                  ]}
+                  activeOpacity={0.8}
+                  onPress={() => setSelectedBank(bank.id)}
+                >
+                  <View style={styles.cardLeft}>
+                    <View style={[styles.logoBg, { backgroundColor: bank.colorHex || '#E1EBFD' }]}>
+                      <Text style={{ color: '#1A4FB0', fontWeight: 'bold', fontSize: 16 }}>
+                        {bank.shortCode ? bank.shortCode.substring(0, 3) : bank.name.substring(0, 2).toUpperCase()}
+                      </Text>
+                    </View>
+                    <Text style={[styles.bankName, { color: theme.colors.text }]}>{bank.name}</Text>
+                  </View>
+                  <Svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <Path
+                      d="M9 5l7 7-7 7"
+                      stroke={selectedBank === bank.id ? theme.colors.primary : theme.colors.muted}
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </Svg>
-                </View>
-                <Text style={[styles.bankName, { color: theme.colors.text }]}>State Bank of India</Text>
-              </View>
-              <Svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <Path
-                  d="M9 5l7 7-7 7"
-                  stroke={selectedBank === 'sbi' ? theme.colors.primary : theme.colors.muted}
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </Svg>
-            </TouchableOpacity>
-
-            {/* Bank 2: HDFC */}
-            <TouchableOpacity
-              style={[
-                styles.bankCard,
-                {
-                  backgroundColor: theme.colors.card,
-                  borderColor: selectedBank === 'hdfc' ? theme.colors.primary : theme.colors.border,
-                },
-              ]}
-              activeOpacity={0.8}
-              onPress={() => setSelectedBank('hdfc')}
-            >
-              <View style={styles.cardLeft}>
-                <View style={[styles.logoBg, { backgroundColor: '#FEEAEA' }]}>
-                  <Svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-                    <Rect x="4" y="4" width="16" height="16" rx="2" fill="#E53935" />
-                    <Rect x="7" y="7" width="10" height="10" fill="#FFFFFF" />
-                    <Path d="M12 7V17M7 12H17" stroke="#E53935" strokeWidth="2.5" />
-                  </Svg>
-                </View>
-                <Text style={[styles.bankName, { color: theme.colors.text }]}>HDFC Bank</Text>
-              </View>
-              <Svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <Path
-                  d="M9 5l7 7-7 7"
-                  stroke={selectedBank === 'hdfc' ? theme.colors.primary : theme.colors.muted}
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </Svg>
-            </TouchableOpacity>
-
-            {/* Bank 3: ICICI */}
-            <TouchableOpacity
-              style={[
-                styles.bankCard,
-                {
-                  backgroundColor: theme.colors.card,
-                  borderColor: selectedBank === 'icici' ? theme.colors.primary : theme.colors.border,
-                },
-              ]}
-              activeOpacity={0.8}
-              onPress={() => setSelectedBank('icici')}
-            >
-              <View style={styles.cardLeft}>
-                <View style={[styles.logoBg, { backgroundColor: '#FFF5E6' }]}>
-                  <Svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-                    <Circle cx="12" cy="12" r="9" fill="#FF9933" />
-                    <Path d="M9 15V9h2v6H9zm4-4c0-.6.4-1 1-1h2v2h-2v2h2v2h-3v-5z" fill="#FFFFFF" />
-                  </Svg>
-                </View>
-                <Text style={[styles.bankName, { color: theme.colors.text }]}>ICICI Bank</Text>
-              </View>
-              <Svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <Path
-                  d="M9 5l7 7-7 7"
-                  stroke={selectedBank === 'icici' ? theme.colors.primary : theme.colors.muted}
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </Svg>
-            </TouchableOpacity>
-
-            {/* Bank 4: LIC */}
-            <TouchableOpacity
-              style={[
-                styles.bankCard,
-                {
-                  backgroundColor: theme.colors.card,
-                  borderColor: selectedBank === 'lic' ? theme.colors.primary : theme.colors.border,
-                },
-              ]}
-              activeOpacity={0.8}
-              onPress={() => setSelectedBank('lic')}
-            >
-              <View style={styles.cardLeft}>
-                <View style={[styles.logoBg, { backgroundColor: '#F3E5F5' }]}>
-                  <Svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-                    <Circle cx="12" cy="12" r="9" fill="#7B1FA2" />
-                    <Path d="M12 7c-1.5 0-3 1.5-3 3s1.5 3 3 3 3-1.5 3-3-1.5-3-3-3z" fill="#FFFFFF" />
-                  </Svg>
-                </View>
-                <Text style={[styles.bankName, { color: theme.colors.text }]}>LIC of India</Text>
-              </View>
-              <Svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <Path
-                  d="M9 5l7 7-7 7"
-                  stroke={selectedBank === 'lic' ? theme.colors.primary : theme.colors.muted}
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </Svg>
-            </TouchableOpacity>
+                </TouchableOpacity>
+              ))
+            )}
           </View>
         </View>
 
@@ -186,77 +138,49 @@ const StartYourClaim = ({ navigation }: any) => {
           <Text style={[styles.sectionSubtitle, { color: theme.colors.muted }]}>Kis type ka claim hai?</Text>
 
           <View style={styles.typeGrid}>
-            {/* Type 1: Savings Account */}
-            <TouchableOpacity
-              style={[
-                styles.typeCard,
-                {
-                  backgroundColor: theme.colors.card,
-                  borderColor: selectedType === 'savings' ? theme.colors.primary : theme.colors.border,
-                },
-              ]}
-              activeOpacity={0.8}
-              onPress={() => setSelectedType('savings')}
-            >
-              <View style={[styles.typeIconBg, { backgroundColor: '#E1F5FE' }]}>
-                <Svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-                  <Path
-                    d="M19 4H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-7 3c1.7 0 3 1.3 3 3s-1.3 3-3 3-3-1.3-3-3 1.3-3 3-3zm5 10H7v-1c0-1.7 3.3-2.5 5-2.5s5 .8 5 2.5v1z"
-                    fill="#0288D1"
-                  />
-                </Svg>
-              </View>
-              <Text style={[styles.typeTitle, { color: theme.colors.text }]}>Savings Account</Text>
-              <Text style={[styles.typeDesc, { color: theme.colors.muted }]}>Passbook / Account</Text>
-            </TouchableOpacity>
+            {loadingForms ? (
+              <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginTop: 20 }} />
+            ) : forms.length === 0 ? (
+              <Text style={{ textAlign: 'center', marginTop: 20, color: theme.colors.muted }}>No forms available for this bank.</Text>
+            ) : (
+              forms.map((form) => {
+                const isSelected = selectedFormId === form.id;
+                // Simple generic icon selection based on formName
+                let iconColor = '#E1F5FE';
+                let svgPath = "M19 4H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-7 3c1.7 0 3 1.3 3 3s-1.3 3-3 3-3-1.3-3-3 1.3-3 3-3zm5 10H7v-1c0-1.7 3.3-2.5 5-2.5s5 .8 5 2.5v1z";
+                let fill = "#0288D1";
+                if (form.claimType.toLowerCase().includes('fd')) {
+                  iconColor = '#E0F2F1'; fill = '#00796B';
+                  svgPath = "M19 12h-2v3h-3v2h5v-5zM12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8zm-1-5H9V9h3c1.7 0 3 1.3 3 3s-1.3 3-3 3h-1zm0-4h2c.6 0 1-.4 1-1s-.4-1-1-1h-2v2z";
+                } else if (form.claimType.toLowerCase().includes('insurance')) {
+                  iconColor = '#EDE7F6'; fill = '#512DA8';
+                  svgPath = "M12 1L3 5v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V5l-9-4zm0 10.9h6c-.5 3.6-2.5 6.8-6 8V12h-6V6.9l6-2.7v7.7z";
+                }
 
-            {/* Type 2: Fixed Deposit */}
-            <TouchableOpacity
-              style={[
-                styles.typeCard,
-                {
-                  backgroundColor: theme.colors.card,
-                  borderColor: selectedType === 'fd' ? theme.colors.primary : theme.colors.border,
-                },
-              ]}
-              activeOpacity={0.8}
-              onPress={() => setSelectedType('fd')}
-            >
-              <View style={[styles.typeIconBg, { backgroundColor: '#E0F2F1' }]}>
-                <Svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-                  <Path
-                    d="M19 12h-2v3h-3v2h5v-5zM12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8zm-1-5H9V9h3c1.7 0 3 1.3 3 3s-1.3 3-3 3h-1zm0-4h2c.6 0 1-.4 1-1s-.4-1-1-1h-2v2z"
-                    fill="#00796B"
-                  />
-                </Svg>
-              </View>
-              <Text style={[styles.typeTitle, { color: theme.colors.text }]}>Fixed Deposit (FD)</Text>
-              <Text style={[styles.typeDesc, { color: theme.colors.muted }]}>Deposit Account</Text>
-            </TouchableOpacity>
-
-            {/* Type 3: Insurance */}
-            <TouchableOpacity
-              style={[
-                styles.typeCard,
-                {
-                  backgroundColor: theme.colors.card,
-                  borderColor: selectedType === 'insurance' ? theme.colors.primary : theme.colors.border,
-                },
-              ]}
-              activeOpacity={0.8}
-              onPress={() => setSelectedType('insurance')}
-            >
-              <View style={[styles.typeIconBg, { backgroundColor: '#EDE7F6' }]}>
-                <Svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-                  <Path
-                    d="M12 1L3 5v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V5l-9-4zm0 10.9h6c-.5 3.6-2.5 6.8-6 8V12h-6V6.9l6-2.7v7.7z"
-                    fill="#512DA8"
-                  />
-                </Svg>
-              </View>
-              <Text style={[styles.typeTitle, { color: theme.colors.text }]}>Insurance / LIC</Text>
-              <Text style={[styles.typeDesc, { color: theme.colors.muted }]}>Policy Claim</Text>
-            </TouchableOpacity>
+                return (
+                  <TouchableOpacity
+                    key={form.id}
+                    style={[
+                      styles.typeCard,
+                      {
+                        backgroundColor: theme.colors.card,
+                        borderColor: isSelected ? theme.colors.primary : theme.colors.border,
+                      },
+                    ]}
+                    activeOpacity={0.8}
+                    onPress={() => setSelectedFormId(form.id)}
+                  >
+                    <View style={[styles.typeIconBg, { backgroundColor: iconColor }]}>
+                      <Svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                        <Path d={svgPath} fill={fill} />
+                      </Svg>
+                    </View>
+                    <Text style={[styles.typeTitle, { color: theme.colors.text }]}>{form.formName}</Text>
+                    <Text style={[styles.typeDesc, { color: theme.colors.muted }]}>{form.claimType}</Text>
+                  </TouchableOpacity>
+                );
+              })
+            )}
           </View>
         </View>
       </ScrollView>
@@ -278,9 +202,20 @@ const StartYourClaim = ({ navigation }: any) => {
           activeOpacity={0.8}
           onPress={() => {
             const { setBankAndType } = useFormWizard.getState();
-            // TODO: In a real app we'd map 'sbi', 'hdfc' to actual DB UUIDs
-            setBankAndType(selectedBank, selectedType);
-            navigation.navigate('FormWizard');
+            const selectedForm = forms.find(f => f.id === selectedFormId);
+            if (selectedForm) {
+              let schema = selectedForm.customFieldsSchema;
+              if (typeof schema === 'string') {
+                try {
+                  schema = JSON.parse(schema);
+                } catch (e) {
+                  console.error('Failed to parse customFieldsSchema', e);
+                  schema = [];
+                }
+              }
+              setBankAndType(selectedBank, selectedForm.claimType, schema);
+              navigation.navigate('FormWizard');
+            }
           }}
         >
           <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>

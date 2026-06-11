@@ -7,11 +7,12 @@ import Step1Deceased from './steps/Step1Deceased';
 import Step2Heirs from './steps/Step2Heirs';
 import Step3Witnesses from './steps/Step3Witnesses';
 import Step4Documents from './steps/Step4Documents';
+import Step4bExtraInfo from './steps/Step4bExtraInfo';
 import Step5Review from './steps/Step5Review';
 
 const { width } = Dimensions.get('window');
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6;
 
 const FormWizardScreen = ({ navigation }: any) => {
   const { theme } = useTheme();
@@ -45,6 +46,8 @@ const FormWizardScreen = ({ navigation }: any) => {
       case 4:
         return <Step4Documents onNext={handleNext} onBack={handleBack} />;
       case 5:
+        return <Step4bExtraInfo onNext={handleNext} onBack={handleBack} />;
+      case 6:
         return <Step5Review onNext={handleNext} onBack={handleBack} />;
       default:
         return <Step1Deceased onNext={handleNext} />;
